@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visionary | AI Fitness & Biometric Suite</title>
+    <!-- Google Fonts & FontAwesome Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- MediaPipe Pose JS via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+    
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon"><i class="fa-solid fa-atom"></i></div>
+                <div class="brand-text">
+                    <h1>VISIONARY</h1>
+                    <span class="badge">BIOMETRIC SUITE</span>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-tab active" data-tab="tab-workout">
+                    <i class="fa-solid fa-dumbbell"></i>
+                    <span>Workout & Form AI</span>
+                </button>
+                <button class="nav-tab" data-tab="tab-nutrition">
+                    <i class="fa-solid fa-utensils"></i>
+                    <span>Nutrition & Voice AI</span>
+                </button>
+                <button class="nav-tab" data-tab="tab-history">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span>Analytics & History</span>
+                </button>
+                <button class="nav-tab" data-tab="tab-settings">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>Engine Settings</span>
+                </button>
+            </nav>
+
+            <div class="status-panel">
+                <div class="status-title">SYSTEM MONITOR</div>
+                <div class="status-item">
+                    <span class="dot online"></span>
+                    <span>WebSocket: <strong id="ws-status">Connecting...</strong></span>
+                </div>
+                <div class="status-item">
+                    <span class="dot online"></span>
+                    <span>CV Latency: <strong id="latency-val">-- ms</strong></span>
+                </div>
+                <div class="status-item">
+                    <span class="dot online"></span>
+                    <span>Gemini AI: <strong style="color: var(--accent-emerald);">Pre-Loaded</strong></span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            
+            <!-- TAB 1: WORKOUT TRACKER & CV FORM AI -->
+            <section id="tab-workout" class="tab-content active">
+                <header class="top-header">
+                    <div class="header-title">
+                        <h2>Workout Tracking & Form Analysis</h2>
+                        <p>Real-Time Biomechanical Camera Feedback & Set Logger</p>
+                    </div>
+                    
+                    <div class="exercise-selector-wrap">
+                        <label for="exercise-select"><i class="fa-solid fa-person-walking"></i> Select Exercise:</label>
+                        <select id="exercise-select" class="exercise-select">
+                            <option value="bicep_curl">Bicep Curl</option>
+                            <option value="tricep_pushdown">Tricep Pushdown</option>
+                            <option value="lat_pulldown">Lat Pulldown</option>
+                            <option value="squat">Barbell / Bodyweight Squat</option>
+                            <option value="chest_press">Chest Press / Overhead Press</option>
+                            <option value="shoulder_press">Dumbbell Shoulder Press</option>
+                            <option value="lunge">Walking / Stationary Lunge</option>
+                        </select>
+                    </div>
+                </header>
+
+                <div class="workout-grid">
+                    <!-- Left: Camera Feed & Canvas -->
+                    <div class="video-section">
+                        <div class="card video-card">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-camera"></i> Live Form Check Feed</h3>
+                                <button id="toggle-cam-btn" class="btn btn-primary"><i class="fa-solid fa-video"></i> Start Camera</button>
+                            </div>
+
+                            <!-- Camera Angle Setup Guide Banner -->
+                            <div class="camera-setup-banner">
+                                <div class="setup-item">
+                                    <i class="fa-solid fa-camera-rotate"></i>
+                                    <span>Camera Setup: <strong id="camera-angle-req">90° Side Profile</strong></span>
+                                </div>
+                                <div class="setup-item">
+                                    <i class="fa-solid fa-ruler"></i>
+                                    <span>Distance: <strong>6 - 8 Feet Away</strong></span>
+                                </div>
+                                <div class="setup-item badge-status" id="camera-align-badge">
+                                    <i class="fa-solid fa-circle-check"></i> <span id="camera-align-text">Optimal Alignment</span>
+                                </div>
+                            </div>
+
+                            <div class="canvas-wrapper">
+                                <video id="input-video" playsinline style="display: none;"></video>
+                                <canvas id="output-canvas" width="640" height="480"></canvas>
+                                
+                                <div class="hud-overlay">
+                                    <div class="hud-badge phase-badge" id="hud-phase">STAGE: DOWN</div>
+                                    <div class="hud-badge rep-badge" id="hud-reps">REPS: 0</div>
+                                </div>
+
+                                <div class="warnings-box" id="warnings-box">
+                                    <i class="fa-solid fa-shield-halved"></i> Biomechanical Form: Optimal Alignment
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Live Telemetry Inspector -->
+                        <div class="card json-card" style="margin-top: 20px;">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-code"></i> Live Vector Telemetry Stream</h3>
+                                <span class="badge-tag">ASGI WebSockets</span>
+                            </div>
+                            <pre class="json-code" id="json-inspector">{ "status": "Start Camera to stream live telemetry..." }</pre>
+                        </div>
+                    </div>
+
+                    <!-- Right: Exercise Standards Guide & Set Logger -->
+                    <div class="side-panel">
+                        <!-- Biomechanical Form Execution Standards Guide -->
+                        <div class="card guide-card">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-book-bookmark"></i> Form Execution Standards</h3>
+                                <span class="badge-tag success" id="guide-ex-name">Bicep Curl</span>
+                            </div>
+                            
+                            <div class="guide-body">
+                                <div class="guide-rule-item">
+                                    <i class="fa-solid fa-check-circleRule text-emerald"></i>
+                                    <div class="rule-text">
+                                        <strong id="rule-1-title">Elbow Position</strong>
+                                        <p id="rule-1-desc">Keep upper arm fixed against torso to isolate target muscle.</p>
+                                    </div>
+                                </div>
+
+                                <div class="guide-rule-item">
+                                    <i class="fa-solid fa-check-circleRule text-emerald"></i>
+                                    <div class="rule-text">
+                                        <strong id="rule-2-title">Range of Motion</strong>
+                                        <p id="rule-2-desc">Extend fully at bottom (>160°) and flex to peak contraction (<35°).</p>
+                                    </div>
+                                </div>
+
+                                <div class="guide-rule-item">
+                                    <i class="fa-solid fa-triangle-exclamation text-amber"></i>
+                                    <div class="rule-text">
+                                        <strong id="rule-3-title">Form Violation Warning</strong>
+                                        <p id="rule-3-desc">Excessive torso swinging (>35° tilt) invalidates rep credit.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Score & Set Logger -->
+                        <div class="card set-logger-card" style="margin-top: 20px;">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-clipboard-check"></i> Active Set Logger</h3>
+                                <span class="badge-tag">Session #1</span>
+                            </div>
+
+                            <div class="score-display">
+                                <div class="score-circle">
+                                    <span class="score-val" id="live-form-score">98%</span>
+                                    <span class="score-label">FORM ACCURACY</span>
+                                </div>
+                            </div>
+
+                            <div class="logger-inputs">
+                                <div class="input-row">
+                                    <div class="input-field">
+                                        <label>Weight (lbs)</label>
+                                        <input type="number" id="log-weight-input" value="45" class="num-input">
+                                    </div>
+                                    <div class="input-field">
+                                        <label>Target Reps</label>
+                                        <input type="number" id="log-target-reps" value="10" class="num-input">
+                                    </div>
+                                </div>
+                                <button id="log-set-btn" class="btn btn-primary btn-block" style="margin-top: 14px;">
+                                    <i class="fa-solid fa-plus-circle"></i> Log Completed Set
+                                </button>
+                            </div>
+
+                            <!-- Logged Sets History Table -->
+                            <div class="logged-sets-list" style="margin-top: 16px;">
+                                <h4>Today's Logged Sets:</h4>
+                                <ul id="sets-history-list" class="sets-list">
+                                    <li class="empty-list-text">No sets logged yet. Perform exercise and click 'Log Completed Set'.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: NUTRITION TRACKER & VOICE AI -->
+            <section id="tab-nutrition" class="tab-content" style="display: none;">
+                <header class="top-header">
+                    <div class="header-title">
+                        <h2>Multimodal Nutrition & Voice Tracker</h2>
+                        <p>Speech-to-Text Voice Logging powered by Google Gemini AI & USDA Database</p>
+                    </div>
+                </header>
+
+                <!-- Calorie & Macronutrient Targets Progress Dashboard -->
+                <div class="card macro-dashboard-card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-chart-pie"></i> Daily Macro Targets</h3>
+                        <span class="badge-tag success">Target: 2,500 kcal</span>
+                    </div>
+
+                    <div class="macro-progress-grid">
+                        <div class="macro-progress-box cals">
+                            <div class="macro-head">
+                                <span>Calories</span>
+                                <strong id="dash-cals-text">1,240 / 2,500 kcal</strong>
+                            </div>
+                            <div class="progress-bar"><div class="progress-fill" id="dash-cals-bar" style="width: 50%;"></div></div>
+                        </div>
+
+                        <div class="macro-progress-box prot">
+                            <div class="macro-head">
+                                <span>Protein</span>
+                                <strong id="dash-prot-text">110 / 180 g</strong>
+                            </div>
+                            <div class="progress-bar"><div class="progress-fill" id="dash-prot-bar" style="width: 61%;"></div></div>
+                        </div>
+
+                        <div class="macro-progress-box carbs">
+                            <div class="macro-head">
+                                <span>Carbohydrates</span>
+                                <strong id="dash-carbs-text">140 / 250 g</strong>
+                            </div>
+                            <div class="progress-bar"><div class="progress-fill" id="dash-carbs-bar" style="width: 56%;"></div></div>
+                        </div>
+
+                        <div class="macro-progress-box fats">
+                            <div class="macro-head">
+                                <span>Fats</span>
+                                <strong id="dash-fats-text">42 / 70 g</strong>
+                            </div>
+                            <div class="progress-bar"><div class="progress-fill" id="dash-fats-bar" style="width: 60%;"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Voice Meal Logger & Pydantic JSON Inspector -->
+                <div class="dashboard-grid" style="margin-top: 24px;">
+                    <div class="card nlp-control-card">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-microphone"></i> Voice Meal Ingestion</h3>
+                            <span class="badge-tag" id="nlp-status-tag">Status: Idle</span>
+                        </div>
+
+                        <div class="audio-action-row" style="margin-bottom: 16px;">
+                            <button id="record-audio-btn" class="btn btn-primary"><i class="fa-solid fa-microphone"></i> Record Meal Speech</button>
+                            <button id="text-meal-btn" class="btn btn-secondary"><i class="fa-solid fa-keyboard"></i> Type Meal Text</button>
+                        </div>
+
+                        <div class="transcript-box">
+                            <div class="box-label"><i class="fa-solid fa-quote-left"></i> Speech Audio Transcript:</div>
+                            <div class="transcript-text" id="transcript-text">"2 grilled chicken breasts, 1 cup of quinoa, and half an avocado"</div>
+                        </div>
+
+                        <div class="macro-pills-row" style="margin-top: 16px;">
+                            <div class="macro-pill cals"><span class="macro-label">Energy</span><span class="macro-val" id="macro-cals">0 kcal</span></div>
+                            <div class="macro-pill prot"><span class="macro-label">Protein</span><span class="macro-val" id="macro-prot">0 g</span></div>
+                            <div class="macro-pill carbs"><span class="macro-label">Carbs</span><span class="macro-val" id="macro-carbs">0 g</span></div>
+                            <div class="macro-pill fats"><span class="macro-label">Fats</span><span class="macro-val" id="macro-fats">0 g</span></div>
+                        </div>
+
+                        <button id="commit-meal-btn" class="btn btn-primary btn-block" style="margin-top: 16px;">
+                            <i class="fa-solid fa-check"></i> Add Meal to Today's Food Log
+                        </button>
+                    </div>
+
+                    <!-- Enforced Pydantic Schema Output -->
+                    <div class="card json-card">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-shield-check"></i> Pydantic Schema Output</h3>
+                            <span class="badge-tag">Gemini AI + USDA API</span>
+                        </div>
+                        <pre class="json-code" id="pydantic-json-output">{ "status": "Record speech or type meal text to ingest food..." }</pre>
+                    </div>
+                </div>
+
+                <!-- Today's Logged Meals History Table -->
+                <div class="card food-log-card" style="margin-top: 24px;">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-list-check"></i> Today's Food Log</h3>
+                        <span class="badge-tag success" id="food-log-count">0 Meals Logged</span>
+                    </div>
+
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Meal Name</th>
+                                <th>Food Items</th>
+                                <th>Calories</th>
+                                <th>Protein</th>
+                                <th>Carbs</th>
+                                <th>Fats</th>
+                            </tr>
+                        </thead>
+                        <tbody id="food-log-tbody">
+                            <tr>
+                                <td colspan="7" class="text-center" style="color: var(--text-secondary); padding: 20px;">No meals logged yet today. Use the voice logger above to add a meal!</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB 3: ANALYTICS & HISTORY -->
+            <section id="tab-history" class="tab-content" style="display: none;">
+                <header class="top-header">
+                    <div class="header-title">
+                        <h2>Analytics & Biomechanical History</h2>
+                        <p>Session Logs, Form Score Metrics & Time-Series Data</p>
+                    </div>
+                </header>
+
+                <div class="card history-card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-database"></i> Logged Workout Sessions</h3>
+                        <button id="refresh-history-btn" class="btn btn-secondary"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+                    </div>
+
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Session ID</th>
+                                <th>Exercise</th>
+                                <th>Completed Reps</th>
+                                <th>Form Accuracy</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-tbody">
+                            <tr>
+                                <td colspan="6" class="text-center" style="color: var(--text-secondary); padding: 20px;">Loading historical logs from MongoDB Atlas...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB 4: SETTINGS & API KEYS -->
+            <section id="tab-settings" class="tab-content" style="display: none;">
+                <header class="top-header">
+                    <div class="header-title">
+                        <h2>Engine Settings & API Credentials</h2>
+                        <p>Configure Live Credentials & Datastore Endpoints</p>
+                    </div>
+                </header>
+
+                <div class="card settings-card" style="max-width: 650px;">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-key"></i> API Keys & Service Connections</h3>
+                        <span class="badge-tag success">Pre-Loaded Active</span>
+                    </div>
+
+                    <div class="modal-body" style="padding: 0; margin-top: 16px;">
+                        <div class="input-group">
+                            <label><i class="fa-solid fa-atom text-cyan"></i> Google Gemini API Key</label>
+                            <input type="password" id="settings-gemini-key" placeholder="Enter your Gemini API key" class="text-input">
+                            <span class="input-hint">Powers LLM speech parsing and Pydantic JSON schema extraction</span>
+                        </div>
+
+                        <div class="input-group" style="margin-top: 16px;">
+                            <label><i class="fa-solid fa-brain"></i> OpenAI API Key (Optional)</label>
+                            <input type="password" id="settings-openai-key" placeholder="sk-proj-..." class="text-input">
+                            <span class="input-hint">Optional Whisper audio transcription model key</span>
+                        </div>
+
+                        <div class="input-group" style="margin-top: 16px;">
+                            <label><i class="fa-solid fa-seedling"></i> USDA FoodData Central API Key</label>
+                            <input type="password" id="settings-usda-key" value="DEMO_KEY" class="text-input">
+                            <span class="input-hint">Official USDA REST API lookup key</span>
+                        </div>
+
+                        <div class="input-group" style="margin-top: 16px;">
+                            <label><i class="fa-solid fa-database"></i> MongoDB Atlas URI</label>
+                            <input type="password" id="settings-mongo-uri" value="mongodb://localhost:27017/visionary" class="text-input">
+                            <span class="input-hint">Time-series biometric database URI</span>
+                        </div>
+
+                        <div id="settings-status-alert" class="status-alert" style="display: none; margin-top: 16px;"></div>
+
+                        <button id="settings-save-btn" class="btn btn-primary" style="margin-top: 20px;">
+                            <i class="fa-solid fa-circle-check"></i> Save & Test API Connections
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/audio_recorder.js"></script>
+</body>
+</html>

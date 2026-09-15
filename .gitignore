@@ -1,0 +1,34 @@
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.crt
+
+# Python & Virtual Environments
+venv/
+env/
+ENV/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyTest & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# IDE & OS Files
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker Data & Temp
+.docker/
+redis_data/
+mongo_data/
